@@ -3,6 +3,7 @@ services:
   adguard-cidre:
     build: .
     container_name: adguard-cidre
+    restart: unless-stopped
     environment:
       - TZ=Europe/Paris # change to your timezone
       - BLOCK_COUNTRIES=cn,ru,ir # choose countries listed IP to block. Full lists here https://github.com/vulnebify/cidre/tree/main/output/cidr/ipv4

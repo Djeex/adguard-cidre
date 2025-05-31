@@ -1,10 +1,21 @@
-FROM alpine:latest
+FROM python:3.11-slim
 
-RUN apk add --no-cache curl bash busybox tzdata
+# Install curl and cron
+RUN apt-get update && apt-get install -y curl cron && rm -rf /var/lib/apt/lists/*
 
-COPY update-blocklist.sh /usr/local/bin/update-blocklist.sh
-COPY entrypoint.sh /entrypoint.sh
+# Install Python requests
+RUN pip install --no-cache-dir requests
 
-RUN chmod +x /usr/local/bin/update-blocklist.sh /entrypoint.sh
+# Create adguard config dir
+RUN mkdir -p /adguard
 
-ENTRYPOINT ["/entrypoint.sh"]
+# Copy update-blocklist script
+COPY update-blocklist.py /usr/local/bin/update-blocklist.py
+RUN chmod +x /usr/local/bin/update-blocklist.py
+
+# Copy entrypoint script (on next step)
+
+# Setup cron config dir
+RUN mkdir -p /etc/crontabs
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.py"]
