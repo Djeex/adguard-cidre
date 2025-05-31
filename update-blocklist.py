@@ -51,7 +51,7 @@ def read_manual_ips():
         with MANUAL_IPS_FILE.open() as f:
             for line in f:
                 line = line.strip()
-                # Simple regex match for IPv4 or IPv4 CIDR
+                # Simple check for IPv4 or IPv4 CIDR format
                 if line and line.count('.') == 3:
                     valid_ips.append(line)
         logging.info(f"Added {len(valid_ips)} manual IP entries")
@@ -75,24 +75,35 @@ def update_yaml_with_ips(ips):
                 output_lines.extend(formatted_ips)
                 inside_disallowed = True
             elif inside_disallowed:
-                # Skip old lines under disallowed_clients (assuming indentation)
+                # Skip old lines under disallowed_clients block
                 if line.startswith("  ") and not line.startswith("    -"):
-                    # This is a new section, disallowed_clients block ended
+                    # New section, disallowed_clients block ended
                     inside_disallowed = False
                     output_lines.append(line.rstrip("\n"))
-                # Else skip line inside disallowed_clients block
+                # else skip line
             else:
                 output_lines.append(line.rstrip("\n"))
 
-    # If the file ended while still inside disallowed_clients block, append nothing more (already done)
-
-    # Write to temporary YAML in same folder (to avoid cross-device rename error)
     with TMP_YAML.open("w") as f:
         f.write("\n".join(output_lines) + "\n")
 
-    # Atomic replace
     TMP_YAML.replace(ADGUARD_YAML)
     logging.info(f"Updated {ADGUARD_YAML} with new disallowed clients list.")
+
+def restart_adguard_container():
+    docker_api_url = os.getenv("DOCKER_API_URL", "http://socket-proxy-adguard:2375")
+    container_name = os.getenv("ADGUARD_CONTAINER_NAME", "adguardhome")
+    restart_url = f"{docker_api_url}/containers/{container_name}/restart"
+
+    logging.info(f"Restarting AdGuard container '{container_name}'...")
+    try:
+        resp = requests.post(restart_url, timeout=10)
+        if resp.status_code == 204:
+            logging.info("AdGuard container restarted successfully.")
+        else:
+            logging.error(f"Failed to restart container: {resp.status_code} {resp.text}")
+    except Exception as e:
+        logging.error(f"Error restarting container: {e}")
 
 def main():
     if not ADGUARD_YAML.exists():
@@ -112,6 +123,8 @@ def main():
     combined_ips = cidr_ips + manual_ips
 
     update_yaml_with_ips(combined_ips)
+
+    restart_adguard_container()
 
 if __name__ == "__main__":
     main()
