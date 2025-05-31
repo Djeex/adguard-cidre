@@ -2,6 +2,11 @@
 
 set -e
 
+if [ -n "$TZ" ]; then
+  cp /usr/share/zoneinfo/$TZ /etc/localtime
+  echo "$TZ" > /etc/timezone
+fi
+
 CRON_EXPR="${BLOCKLIST_CRON:-"0 6 * * *"}" # default: every hour
 SCRIPT_PATH="/usr/local/bin/update-blocklist.sh"
 

@@ -7,7 +7,7 @@ TMP_YAML="/tmp/AdGuardHome.yaml"
 MANUAL_IPS_FILE="/adguard/manually_blocked_ips.conf"
 CIDR_BASE_URL="https://raw.githubusercontent.com/vulnebify/cidre/main/output/cidr/ipv4"
 COUNTRIES=${BLOCK_COUNTRIES:-""}
-DOCKER_API_URL=${DOCKER_API_URL:-"http://docker-socket-proxy:2375"}
+DOCKER_API_URL=${DOCKER_API_URL:-"tcp://socket-proxy-adguard:2375"}
 
 if [ -z "$COUNTRIES" ]; then
   echo "No countries specified in BLOCK_COUNTRIES."
