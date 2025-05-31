@@ -6,7 +6,7 @@ services:
       - TZ=Europe/Paris # change to your timezone
       - BLOCK_COUNTRIES=CN,RU,IR # choose countries listed IP to block. Full lists here https://github.com/vulnebify/cidre/tree/main/output/cidr/ipv4
       - BLOCKLIST_CRON=0 6 * * * # at 6:00 every days
-      - DOCKER_API_URL=tcp://socket-proxy-adguard:2375
+      - DOCKER_API_URL=http://socket-proxy-adguard:2375
     volumes:
       - /path/to/adguard/confdir:/adguard
 
