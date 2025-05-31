@@ -23,6 +23,7 @@
 - Updates the disallowed_clients section in the AdGuard Home config.
 - Configurable update frequency via cron expression environment variable.
 - Automatically restarts the AdGuard Home container after updates via Docker socket proxy.
+- Backup `AdguardHome.yaml` at first startup, then create a second backup at each update.
 
 ## Environment Variables
 
@@ -73,6 +74,6 @@
 5. **Check logs to verify updates**
 
    ```bash
-   docker-compose logs -f
+   docker compose logs -f
    ```
 
