@@ -61,46 +61,46 @@ def read_manual_ips():
         return []
 
 def update_yaml_with_ips(ips):
-    # Read original lines
-    with ADGUARD_YAML.open() as f:
-        lines = f.readlines()
-
     output_lines = []
     inside_disallowed = False
     disallowed_indent = ""
 
-    formatted_ips = []  # We'll prepare after knowing indent
+    with ADGUARD_YAML.open() as f:
+        lines = f.readlines()
 
-    for i, line in enumerate(lines):
+    for line in lines:
         stripped = line.lstrip()
         indent = line[:len(line) - len(stripped)]
 
         if stripped.startswith("disallowed_clients:"):
+            # Capture the indentation of the disallowed_clients key
             disallowed_indent = indent
-            # Write the disallowed_clients line with original indent
-            output_lines.append(line.rstrip("\n"))
-            inside_disallowed = True
 
-            # Prepare formatted IPs with indentation plus 2 spaces (YAML block indent)
+            # Replace entire line with just 'disallowed_clients:' (remove any [])
+            output_lines.append(f"{disallowed_indent}disallowed_clients:")
+
+            # Add all IPs indented 2 spaces more than disallowed_clients
             formatted_ips = [f"{disallowed_indent}  - {ip}" for ip in ips]
-
-            # Immediately add IP list here (replace old block)
             output_lines.extend(formatted_ips)
+
+            inside_disallowed = True
             continue
 
         if inside_disallowed:
-            # Detect if the current line is out of the disallowed_clients block by checking indentation
-            # If line is empty or less indented, disallowed block ended
-            if (line.strip() == "") or (len(line) - len(line.lstrip()) <= len(disallowed_indent)):
+            # We skip all old lines inside disallowed_clients block.
+            # The block ends when we find a line with indentation
+            # less than or equal to disallowed_indent but not the key line itself.
+            # To detect end of block, compare indent length:
+            if len(indent) <= len(disallowed_indent) and stripped != "":
                 inside_disallowed = False
                 output_lines.append(line.rstrip("\n"))
             else:
-                # Skip lines inside disallowed_clients block (already replaced)
+                # skip this line (old disallowed_clients content)
                 continue
         else:
             output_lines.append(line.rstrip("\n"))
 
-    # Write to temporary YAML
+    # Write temp file in same directory to avoid cross-device rename errors
     with TMP_YAML.open("w") as f:
         f.write("\n".join(output_lines) + "\n")
 
