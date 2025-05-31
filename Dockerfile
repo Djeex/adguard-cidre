@@ -7,6 +7,12 @@ RUN apt-get update && apt-get install -y \
     tzdata \
     && rm -rf /var/lib/apt/lists/*
 
+# Install python dependencies
+RUN pip install --no-cache-dir requests
+
+# Create crontabs directory (if needed)
+RUN mkdir -p /etc/crontabs
+
 # Copy scripts
 COPY update-blocklist.py /usr/local/bin/update-blocklist.py
 COPY entrypoint.py /usr/local/bin/entrypoint.py
@@ -17,7 +23,7 @@ RUN chmod +x /usr/local/bin/update-blocklist.py /usr/local/bin/entrypoint.py
 # Set default timezone (can be overridden with TZ env var)
 ENV TZ=UTC
 
-# Configure timezone (tzdata) — important for /usr/share/zoneinfo/*
+# Configure timezone (tzdata)
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # Set entrypoint

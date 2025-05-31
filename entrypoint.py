@@ -14,6 +14,20 @@ logging.basicConfig(
 ADGUARD_YAML = Path("/adguard/AdGuardHome.yaml")
 FIRST_BACKUP = Path("/adguard/AdGuardHome.yaml.first-start.bak")
 
+def setup_cron():
+    cron_expr = os.getenv("BLOCKLIST_CRON", "0 6 * * *")
+    cron_line = f"{cron_expr} root /usr/local/bin/update-blocklist.py\n"
+    cron_dir = "/etc/crontabs"
+    cron_file = f"{cron_dir}/root"
+
+    logging.info(f"Setting cron job: {cron_line.strip()}")
+
+    # Ensure cron directory exists
+    os.makedirs(cron_dir, exist_ok=True)
+
+    with open(cron_file, "w") as f:
+        f.write(cron_line)
+
 def backup_first_start():
     if not FIRST_BACKUP.exists():
         logging.info("Creating first start backup...")
@@ -34,17 +48,9 @@ def run_initial_update():
         logging.error(f"Initial update script failed: {e}")
         sys.exit(1)
 
-def setup_cron():
-    cron_expr = os.getenv("BLOCKLIST_CRON", "0 6 * * *")
-    cron_line = f"{cron_expr} root /usr/local/bin/update-blocklist.py\n"
-    cron_file = "/etc/crontabs/root"
-    logging.info(f"Setting cron job: {cron_line.strip()}")
-    with open(cron_file, "w") as f:
-        f.write(cron_line)
-
 def start_cron_foreground():
     logging.info("Starting cron in foreground...")
-    os.execvp("crond", ["crond", "-f"])
+    os.execvp("cron", ["cron", "-f"])
 
 def main():
     # Check AdGuardHome.yaml exists

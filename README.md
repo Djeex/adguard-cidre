@@ -73,6 +73,6 @@
 5. **Check logs to verify updates**
 
    ```bash
-   docker-compose logs -f
+   docker compose logs -f
    ```
 
