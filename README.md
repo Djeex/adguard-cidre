@@ -32,6 +32,8 @@
 | `BLOCK_COUNTRIES`   | Comma-separated country codes to block (e.g., `CN,RU,IR`)  | (required)                        |
 | `BLOCKLIST_CRON`    | Cron expression for update frequency (e.g., `0 6 * * *`) | `0 6 * * *` (at 6:00 everydays)          |
 | `DOCKER_API_URL`    | URL of Docker socket proxy to restart AdGuard container    | `http://socket-proxy-adguard:2375` |
+| `ADGUARD_CONTAINER_NAME`    | Name of your adguard container    | `adguardhome` |
+
 
 ## File Structure
 
