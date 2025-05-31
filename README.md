@@ -46,6 +46,66 @@
 
 ## Installation and Usage
 
+### With our docker image
+
+1. **Create `docker-compose.yml` in your `adguard-cidre` folder**
+
+    ```yaml
+    ---
+    services:
+    adguard-cidre:
+        image: git.djeex.fr/djeex/adguard-cidre:latest
+        container_name: adguard-cidre
+        restart: unless-stopped
+        environment:
+        - TZ=Europe/Paris # change to your timezone
+        - BLOCK_COUNTRIES=cn,ru # choose countries listed IP to block. Full lists here https://github.com/vulnebify/cidre/tree/main/output/cidr/ipv4
+        - BLOCKLIST_CRON=0 6 * * * # at 6:00 every days
+        - DOCKER_API_URL=http://socket-proxy-adguard:2375 # docker socket proxy
+        - ADGUARD_CONTAINER_NAME=adguardhome # adguard container name
+        volumes:
+        - /path/to/adguard/confdir:/adguard
+
+    socket-proxy:
+        image: lscr.io/linuxserver/socket-proxy:latest
+        container_name: socket-proxy-adguard
+        security_opt:
+        - no-new-privileges:true
+        environment:
+        - CONTAINERS=1
+        - ALLOW_RESTARTS=1
+        volumes:
+        - /var/run/docker.sock:/var/run/docker.sock:ro
+        restart: unless-stopped
+        read_only: true
+        tmpfs:
+        - /run
+    ```
+2. **Modify docker-compose.yml**
+
+- Set `BLOCK_COUNTRIES` environment variable with the countries you want to block.
+- Adjust `BLOCKLIST_CRON` if you want a different update frequency.
+- Bind mount your adguard configuration folder (wich contains `AdGuardHome.yaml`) to `/adguard`
+- (optionnally) create and edit `manually_blocked_ips.conf` file in your adguard configuration folder to add other IPs you want to block. Only valid IP or CIDR entries will be processed, for exemple :
+
+    ```bash
+    192.168.1.100
+    10.0.0.0/24
+    # Comments or empty lines are ignored
+    ```
+3. **Start the container**
+
+    ```bash
+    docker compose up -d
+    ```
+    
+4. **Check logs to verify updates**
+
+   ```bash
+   docker compose logs -f
+   ```
+
+### With git (developer)
 1. **Clone the repository:**
 
     ```bash
@@ -65,13 +125,13 @@
     # Comments or empty lines are ignored
     ```
 
-4. **Build and start the container**
+3. **Build and start the container**
 
     ```bash
     docker compose build
-    docker compose up -
+    docker compose up -d
     ```
-5. **Check logs to verify updates**
+4. **Check logs to verify updates**
 
    ```bash
    docker compose logs -f
