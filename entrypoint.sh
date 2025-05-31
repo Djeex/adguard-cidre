@@ -1,13 +1,14 @@
 #!/bin/sh
-
 set -e
 
-CRON_EXPR="${BLOCKLIST_CRON:-"0 6 * * *"}" # default: every hour
-SCRIPT_PATH="/usr/local/bin/update-blocklist.sh"
+if [ -n "$TZ" ]; then
+  if [ -f "/usr/share/zoneinfo/$TZ" ]; then
+    cp "/usr/share/zoneinfo/$TZ" /etc/localtime
+    echo "$TZ" > /etc/timezone
+  fi
+fi
 
-echo "Installing cron job with expression: $CRON_EXPR"
+CRON_EXPR="${BLOCKLIST_CRON:-"0 6 * * *"}"
+echo "$CRON_EXPR /usr/local/bin/update-blocklist.sh" > /etc/crontabs/root
 
-echo "$CRON_EXPR root $SCRIPT_PATH" > /etc/crontabs/root
-
-echo "Starting cron..."
-crond -f -L /dev/stdout
+exec crond -f -c /etc/crontabs

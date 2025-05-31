@@ -2,10 +2,13 @@
 services:
   adguard-cidre:
     build: .
+    container_name: adguard-cidre
     environment:
-      - BLOCK_COUNTRIES=CN,RU,IR # choose countries listed IP to block. Full lists here https://github.com/vulnebify/cidre/tree/main/output/cidr/ipv4
+      - TZ=Europe/Paris # change to your timezone
+      - BLOCK_COUNTRIES=cn,ru,ir # choose countries listed IP to block. Full lists here https://github.com/vulnebify/cidre/tree/main/output/cidr/ipv4
       - BLOCKLIST_CRON=0 6 * * * # at 6:00 every days
-      - DOCKER_API_URL=http://socket-proxy-adguard:2375
+      - DOCKER_API_URL=http://socket-proxy-adguard:2375 # docker socket proxy
+      - ADGUARD_CONTAINER_NAME=adguardhome # adguard container name
     volumes:
       - /path/to/adguard/confdir:/adguard
 
@@ -16,6 +19,7 @@ services:
       - no-new-privileges:true
     environment:
       - CONTAINERS=1
+      - ALLOW_RESTARTS=1
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     restart: unless-stopped
