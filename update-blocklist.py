@@ -61,34 +61,52 @@ def read_manual_ips():
         return []
 
 def update_yaml_with_ips(ips):
-    # Format IPs for YAML list (4 spaces indent + dash)
-    formatted_ips = [f"    - {ip}" for ip in ips]
-
-    inside_disallowed = False
-    output_lines = []
-
+    # Read original lines
     with ADGUARD_YAML.open() as f:
-        for line in f:
-            if line.strip().startswith("disallowed_clients:"):
-                # Replace existing disallowed_clients block
-                output_lines.append("disallowed_clients:")
-                output_lines.extend(formatted_ips)
-                inside_disallowed = True
-            elif inside_disallowed:
-                # Skip old lines under disallowed_clients block
-                if line.startswith("  ") and not line.startswith("    -"):
-                    # New section, disallowed_clients block ended
-                    inside_disallowed = False
-                    output_lines.append(line.rstrip("\n"))
-                # else skip line
-            else:
-                output_lines.append(line.rstrip("\n"))
+        lines = f.readlines()
 
+    output_lines = []
+    inside_disallowed = False
+    disallowed_indent = ""
+
+    formatted_ips = []  # We'll prepare after knowing indent
+
+    for i, line in enumerate(lines):
+        stripped = line.lstrip()
+        indent = line[:len(line) - len(stripped)]
+
+        if stripped.startswith("disallowed_clients:"):
+            disallowed_indent = indent
+            # Write the disallowed_clients line with original indent
+            output_lines.append(line.rstrip("\n"))
+            inside_disallowed = True
+
+            # Prepare formatted IPs with indentation plus 2 spaces (YAML block indent)
+            formatted_ips = [f"{disallowed_indent}  - {ip}" for ip in ips]
+
+            # Immediately add IP list here (replace old block)
+            output_lines.extend(formatted_ips)
+            continue
+
+        if inside_disallowed:
+            # Detect if the current line is out of the disallowed_clients block by checking indentation
+            # If line is empty or less indented, disallowed block ended
+            if (line.strip() == "") or (len(line) - len(line.lstrip()) <= len(disallowed_indent)):
+                inside_disallowed = False
+                output_lines.append(line.rstrip("\n"))
+            else:
+                # Skip lines inside disallowed_clients block (already replaced)
+                continue
+        else:
+            output_lines.append(line.rstrip("\n"))
+
+    # Write to temporary YAML
     with TMP_YAML.open("w") as f:
         f.write("\n".join(output_lines) + "\n")
 
     TMP_YAML.replace(ADGUARD_YAML)
     logging.info(f"Updated {ADGUARD_YAML} with new disallowed clients list.")
+
 
 def restart_adguard_container():
     docker_api_url = os.getenv("DOCKER_API_URL", "http://socket-proxy-adguard:2375")
