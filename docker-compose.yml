@@ -6,7 +6,7 @@ services:
     restart: unless-stopped
     environment:
       - TZ=Europe/Paris # change to your timezone
-      - BLOCK_COUNTRIES=cn,ru,ir # choose countries listed IP to block. Full lists here https://github.com/vulnebify/cidre/tree/main/output/cidr/ipv4
+      - BLOCK_COUNTRIES=cn,ru # choose countries listed IP to block. Full lists here https://github.com/vulnebify/cidre/tree/main/output/cidr/ipv4
       - BLOCKLIST_CRON=0 6 * * * # at 6:00 every days
       - DOCKER_API_URL=http://socket-proxy-adguard:2375 # docker socket proxy
       - ADGUARD_CONTAINER_NAME=adguardhome # adguard container name
