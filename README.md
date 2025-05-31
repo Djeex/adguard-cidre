@@ -67,8 +67,8 @@
 4. **Build and start the container**
 
     ```bash
-    docker-compose build
-    docker-compose up -d
+    docker compose build
+    docker compose up -
     ```
 5. **Check logs to verify updates**
 
