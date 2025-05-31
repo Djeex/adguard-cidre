@@ -1,21 +1,24 @@
 FROM python:3.11-slim
 
-# Install curl and cron
-RUN apt-get update && apt-get install -y curl cron && rm -rf /var/lib/apt/lists/*
+# Install required utilities
+RUN apt-get update && apt-get install -y \
+    curl \
+    cron \
+    tzdata \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install Python requests
-RUN pip install --no-cache-dir requests
-
-# Create adguard config dir
-RUN mkdir -p /adguard
-
-# Copy update-blocklist script
+# Copy scripts
 COPY update-blocklist.py /usr/local/bin/update-blocklist.py
-RUN chmod +x /usr/local/bin/update-blocklist.py
+COPY entrypoint.py /usr/local/bin/entrypoint.py
 
-# Copy entrypoint script (on next step)
+# Make scripts executable
+RUN chmod +x /usr/local/bin/update-blocklist.py /usr/local/bin/entrypoint.py
 
-# Setup cron config dir
-RUN mkdir -p /etc/crontabs
+# Set default timezone (can be overridden with TZ env var)
+ENV TZ=UTC
 
+# Configure timezone (tzdata) — important for /usr/share/zoneinfo/*
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+# Set entrypoint
 ENTRYPOINT ["/usr/local/bin/entrypoint.py"]
