@@ -21,8 +21,8 @@ mkdir -p /tmp/cidr
 IFS=',' read -ra CODES <<< "$COUNTRIES"
 for CODE in "${CODES[@]}"; do
   echo "Downloading CIDR list for $CODE..."
-  curl -sf "$CIDR_BASE_URL/${CODE^^}.txt" -o "/tmp/cidr/${CODE}.txt" || continue
-  cat "/tmp/cidr/${CODE}.txt" >> /tmp/cidr/all.txt
+  curl -sf "$CIDR_BASE_URL/${CODE,,}.cidr" -o "/tmp/cidr/${CODE}.cidr" || continue
+  cat "/tmp/cidr/${CODE}.cidr" >> /tmp/cidr/all.txt
 done
 
 if [ -f "$MANUAL_IPS_FILE" ]; then
@@ -42,7 +42,7 @@ END { if (inside==1) print ips }
 
 mv "$TMP_YAML" "$ADGUARD_YAML"
 
-echo "Restarting adguard-home container..."
+echo "Restarting adguard..."
 curl -s -X POST "$DOCKER_API_URL/containers/$ADGUARD_CONTAINER_NAME/restart" -o /dev/null
 
 echo "Done."
