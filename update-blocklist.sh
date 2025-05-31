@@ -8,6 +8,7 @@ MANUAL_IPS_FILE="/adguard/manually_blocked_ips.conf"
 CIDR_BASE_URL="https://raw.githubusercontent.com/vulnebify/cidre/main/output/cidr/ipv4"
 COUNTRIES=${BLOCK_COUNTRIES:-""}
 DOCKER_API_URL=${DOCKER_API_URL:-"http://socket-proxy-adguard:2375"}
+ADGUARD_CONTAINER_NAME=${ADGUARD_CONTAINER_NAME:-"adguardhome"}
 
 if [ -z "$COUNTRIES" ]; then
   echo "No countries specified in BLOCK_COUNTRIES."
@@ -42,6 +43,6 @@ END { if (inside==1) print ips }
 mv "$TMP_YAML" "$ADGUARD_YAML"
 
 echo "Restarting adguard-home container..."
-curl -s -X POST "$DOCKER_API_URL/containers/adguard-home/restart" -o /dev/null
+curl -s -X POST "$DOCKER_API_URL/containers/$ADGUARD_CONTAINER_NAME/restart" -o /dev/null
 
 echo "Done."
