@@ -13,28 +13,37 @@
 
 - [Features](#features)
 - [Environment Variables](#environment-variables)
+- [Volumes](#volumes)
 - [File Structure](#file-structure)
-- [Installation and Usage](#nstallation-and-usage)
+- [Installation and Usage](#installation-and-usage)
 
 ## Features
 
-- Automatically downloads IP CIDR blocks for specified countries to block.
-- Supports additional manually blocked IPs from a configurable file.
-- Updates the disallowed_clients section in the AdGuard Home config.
-- Configurable update frequency via cron expression environment variable.
-- Automatically restarts the AdGuard Home container after updates via Docker socket proxy.
-- Backup `AdguardHome.yaml` at first startup, then create a second backup at each update.
+- Downloads CIDR lists by country from GitHub  
+- Adds manual IPs from a `manually_blocked_ips.conf` file  
+- Updates the `AdGuardHome.yaml` file by replacing the `disallowed_clients` list  
+- Creates a backup of the original config (`AdGuardHome.yaml.first-start.bak`) on first run  
+- Creates a backup before each update (`AdGuardHome.yaml.last-update.bak`)  
+- Restarts the AdGuard Home container via Docker API  
+- Built-in Python scheduler using the `schedule` library, configurable to run updates daily or weekly  
+
 
 ## Environment Variables
 
-| Variable            | Description                                                | Default                           |
-| ------------------- | ---------------------------------------------------------- | --------------------------------- |
-| `TZ`    | Your Time Zone    | (required) |
-| `BLOCK_COUNTRIES`   | Comma-separated country codes to block (e.g., `CN,RU,IR`)  | (required)                        |
-| `BLOCKLIST_CRON`    | Cron expression for update frequency (e.g., `0 6 * * *`) | `0 6 * * *` (at 6:00 everydays)          |
-| `DOCKER_API_URL`    | URL of Docker socket proxy to restart AdGuard container    | `http://socket-proxy-adguard:2375` |
-| `ADGUARD_CONTAINER_NAME`    | Name of your adguard container    | `adguardhome` |
 
+| Variable                 | Description                                                              | Example                     | Possible Values                             |
+|--------------------------|--------------------------------------------------------------------------|-----------------------------|---------------------------------------------|
+| `TZ`                      | Timezone of the container to correctly schedule updates                | `Europe/Paris`              | Any valid timezone (e.g., `UTC`, `America/New_York`, etc.) |
+| `BLOCK_COUNTRIES`         | List of country codes for CIDR lists, separated by commas                | `cn,ru,ir`                  | ISO 2-letter country codes                  |
+| `BLOCKLIST_CRON_TYPE`     | Scheduling type: `daily` or `weekly`                                    | `daily`                     | `daily`, `weekly`                           |
+| `BLOCKLIST_CRON_TIME`     | Time to run update in `HH:MM` 24-hour format                            | `06:00`                     | 24-hour time format                         |
+| `BLOCKLIST_CRON_DAY`      | Day of the week for weekly schedule (e.g., `mon`, `tue`, etc.)          | `mon`                       | `mon`, `tue`, `wed`, `thu`, `fri`, `sat`, `sun` |
+| `ADGUARD_CONTAINER_NAME`  | Name of the AdGuard Home container to restart                           | `adguardhome`               | Valid Docker container name                 |
+| `DOCKER_API_URL`          | Docker API URL (used to restart the container)                          | `http://socket-proxy-adguard:2375` | HTTP URL                                   |
+
+## Volumes
+
+- `/path/to/adguard/confdir` : configuration directory containing `AdGuardHome.yaml` from your adguard container, and optionally `manually_blocked_ips.conf`.
 
 ## File Structure
 
@@ -46,7 +55,7 @@
 
 ## Installation and Usage
 
-### With our docker image
+### With our provided docker image
 
 1. **Create `docker-compose.yml` in your `adguard-cidre` folder**
 
@@ -60,7 +69,10 @@
         environment:
         - TZ=Europe/Paris # change to your timezone
         - BLOCK_COUNTRIES=cn,ru # choose countries listed IP to block. Full lists here https://github.com/vulnebify/cidre/tree/main/output/cidr/ipv4
-        - BLOCKLIST_CRON=0 6 * * * # at 6:00 every days
+        - BLOCKLIST_CRON_TYPE=daily # daily or weekly
+      # if weekly, choose the day
+      # - BLOCKLIST_CRON_DAY=mon
+        - BLOCKLIST_CRON_TIME=06:00
         - DOCKER_API_URL=http://socket-proxy-adguard:2375 # docker socket proxy
         - ADGUARD_CONTAINER_NAME=adguardhome # adguard container name
         volumes:
@@ -128,7 +140,6 @@
 3. **Build and start the container**
 
     ```bash
-    docker compose build
     docker compose up -d
     ```
 4. **Check logs to verify updates**
