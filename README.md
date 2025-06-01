@@ -140,7 +140,6 @@
 3. **Build and start the container**
 
     ```bash
-    docker compose build
     docker compose up -d
     ```
 4. **Check logs to verify updates**

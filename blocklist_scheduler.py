@@ -84,7 +84,7 @@ def update_yaml_with_ips(ips):
         logging.error(f"Failed to parse YAML file {ADGUARD_YAML}")
         return False
 
-    data['disallowed_clients'] = ips
+    data['dns']['disallowed_clients'] = ips
 
     with TMP_YAML.open('w') as f:
         yaml.safe_dump(data, f)
