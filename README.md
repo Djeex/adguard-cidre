@@ -20,7 +20,7 @@
 ## Features
 
 - Downloads CIDR lists by country from GitHub  
-- Adds manual IPs from a `manually_blocked_ips.conf` file  
+- (Optional) Adds manual IPs from a `manually_blocked_ips.conf` file  
 - Updates the `AdGuardHome.yaml` file by replacing the `disallowed_clients` list  
 - Creates a backup of the original config (`AdGuardHome.yaml.first-start.bak`) on first run  
 - Creates a backup before each update (`AdGuardHome.yaml.last-update.bak`)  
@@ -47,11 +47,10 @@
 
 ## File Structure
 
-- `update-blocklist.sh`: Main script to download CIDRs, merge manual IPs, update config, and restart AdGuard.
-- `entrypoint.sh`: Sets up the cron job to periodically run the update script.
-- `Dockerfile`: Builds the lightweight Alpine-based image.
+- `blocklist_scheduler.py`: Script to backup, schedule, download CIDRs, merge manual IPs, update config, and restart AdGuard.
+- `Dockerfile`: Builds the lightweight python3-slim image.
 - `docker-compose.yml`: Example compose file to run the container.
-- `manually_blocked_ips.conf`: (Volume mount) Add extra IPs to block manually.
+- (optional) `manually_blocked_ips.conf`:  Add extra IPs to block manually.
 
 ## Installation and Usage
 
@@ -62,7 +61,7 @@
     ```yaml
     ---
     services:
-    adguard-cidre:
+      adguard-cidre:
         image: git.djeex.fr/djeex/adguard-cidre:latest
         container_name: adguard-cidre
         restart: unless-stopped
@@ -78,7 +77,7 @@
         volumes:
         - /path/to/adguard/confdir:/adguard
 
-    socket-proxy:
+      socket-proxy:
         image: lscr.io/linuxserver/socket-proxy:latest
         container_name: socket-proxy-adguard
         security_opt:
@@ -96,7 +95,7 @@
 2. **Modify docker-compose.yml**
 
 - Set `BLOCK_COUNTRIES` environment variable with the countries you want to block.
-- Adjust `BLOCKLIST_CRON` if you want a different update frequency.
+- Adjust `BLOCKLIST_CRON` variables if you want a different update frequency.
 - Bind mount your adguard configuration folder (wich contains `AdGuardHome.yaml`) to `/adguard`
 - (optionnally) create and edit `manually_blocked_ips.conf` file in your adguard configuration folder to add other IPs you want to block. Only valid IP or CIDR entries will be processed, for exemple :
 
@@ -127,7 +126,7 @@
 2. **Modify docker-compose.yml**
 
 - Set `BLOCK_COUNTRIES` environment variable with the countries you want to block.
-- Adjust `BLOCKLIST_CRON` if you want a different update frequency.
+- Adjust `BLOCKLIST_CRON` variables if you want a different update frequency.
 - Bind mount your adguard configuration folder (wich contains `AdGuardHome.yaml`) to `/adguard`
 - (optionnally) create and edit `manually_blocked_ips.conf` file in your adguard configuration folder to add other IPs you want to block. Only valid IP or CIDR entries will be processed, for exemple :
 
