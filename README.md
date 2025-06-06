@@ -10,7 +10,7 @@
 > [!NOTE]
 >_The code was partially written and structured using a generative AI._
 >
->_Github repo is a mirror of https://git.djeex.fr/Djeex/nvidia-stock-bot. You'll find full package, history and release note there._
+>_Github repo is a mirror of https://git.djeex.fr/Djeex/adguard-cidre. You'll find full package, history and release note there._
 
 ## Sommaire
 
