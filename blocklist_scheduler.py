@@ -6,6 +6,7 @@ import requests
 import yaml
 import schedule
 import time
+import re
 from pathlib import Path
 
 logging.basicConfig(
@@ -18,14 +19,15 @@ ADGUARD_YAML = Path("/adguard/AdGuardHome.yaml")
 TMP_YAML = ADGUARD_YAML.parent / (ADGUARD_YAML.name + ".tmp")
 MANUAL_IPS_FILE = Path("/adguard/manually_blocked_ips.conf")
 CIDR_BASE_URL = "https://raw.githubusercontent.com/vulnebify/cidre/main/output/cidr/ipv4"
+COUNTRY_LIST_URL = "https://raw.githubusercontent.com/vulnebify/cidre/refs/heads/main/cidre/countries.py"
 
 FIRST_BACKUP = ADGUARD_YAML.parent / "AdGuardHome.yaml.first-start.bak"
 LAST_UPDATE_BACKUP = ADGUARD_YAML.parent / "AdGuardHome.yaml.last-update.bak"
 
 BLOCK_COUNTRIES = os.getenv("BLOCK_COUNTRIES", "")
-BLOCKLIST_CRON_TYPE = os.getenv("BLOCKLIST_CRON_TYPE", "daily").lower()  # daily or weekly
-BLOCKLIST_CRON_TIME = os.getenv("BLOCKLIST_CRON_TIME", "06:00")  # HH:MM format
-BLOCKLIST_CRON_DAY = os.getenv("BLOCKLIST_CRON_DAY", "mon").lower()  # only if weekly
+BLOCKLIST_CRON_TYPE = os.getenv("BLOCKLIST_CRON_TYPE", "daily").lower()
+BLOCKLIST_CRON_TIME = os.getenv("BLOCKLIST_CRON_TIME", "06:00")
+BLOCKLIST_CRON_DAY = os.getenv("BLOCKLIST_CRON_DAY", "mon").lower()
 
 ADGUARD_CONTAINER_NAME = os.getenv("ADGUARD_CONTAINER_NAME", "adguardhome")
 DOCKER_API_URL = os.getenv("DOCKER_API_URL", "http://socket-proxy-adguard:2375")
@@ -40,6 +42,44 @@ def backup_first_start():
 def backup_last_update():
     logging.info(f"Creating last update backup: {LAST_UPDATE_BACKUP}")
     LAST_UPDATE_BACKUP.write_text(ADGUARD_YAML.read_text())
+
+def fetch_all_country_codes():
+    try:
+        resp = requests.get(COUNTRY_LIST_URL, timeout=15)
+        resp.raise_for_status()
+        matches = re.findall(r'"([A-Z]{2})"', resp.text)
+        return set(code.lower() for code in matches)
+    except Exception as e:
+        logging.error(f"Failed to fetch available country codes: {e}")
+        return set()
+
+def get_selected_countries():
+    if not BLOCK_COUNTRIES:
+        logging.error("BLOCK_COUNTRIES is not set. Skipping update.")
+        return []
+
+    raw_codes = [c.strip() for c in BLOCK_COUNTRIES.split(",") if c.strip()]
+    if not raw_codes:
+        logging.error("No valid country codes provided.")
+        return []
+
+    is_exclusion = all(c.startswith("!") for c in raw_codes)
+    is_inclusion = all(not c.startswith("!") for c in raw_codes)
+
+    if not (is_exclusion or is_inclusion):
+        logging.error("Mixed syntax in BLOCK_COUNTRIES. Use only inclusion (e.g. 'fr,de') or only exclusion (e.g. '!fr,!de').")
+        sys.exit(1)
+
+    available = fetch_all_country_codes()
+    selected = {c.lstrip("!") for c in raw_codes}
+    unknown = selected - available
+    if unknown:
+        logging.warning(f"Unknown country codes: {', '.join(sorted(unknown))}")
+
+    if is_exclusion:
+        return sorted(available - selected)
+    else:
+        return sorted(selected & available)
 
 def download_cidr_lists(countries):
     combined_ips = []
@@ -76,12 +116,15 @@ def update_yaml_with_ips(ips):
         logging.error(f"{ADGUARD_YAML} does not exist. Cannot update.")
         return False
 
-    data = None
-    with ADGUARD_YAML.open() as f:
-        data = yaml.safe_load(f)
+    try:
+        with ADGUARD_YAML.open() as f:
+            data = yaml.safe_load(f)
+    except Exception as e:
+        logging.error(f"Failed to parse YAML file: {e}")
+        return False
 
-    if data is None:
-        logging.error(f"Failed to parse YAML file {ADGUARD_YAML}")
+    if not isinstance(data, dict):
+        logging.error("Invalid YAML format.")
         return False
 
     data['dns']['disallowed_clients'] = ips
@@ -106,12 +149,12 @@ def restart_adguard_container():
         logging.error(f"Error restarting container: {e}")
 
 def update_blocklist():
-    if not BLOCK_COUNTRIES:
-        logging.error("No countries specified in BLOCK_COUNTRIES environment variable. Skipping update.")
+    countries = get_selected_countries()
+    if not countries:
+        logging.error("No valid countries to process. Skipping update.")
         return
 
-    countries_list = [c.strip() for c in BLOCK_COUNTRIES.split(",") if c.strip()]
-    cidr_ips = download_cidr_lists(countries_list)
+    cidr_ips = download_cidr_lists(countries)
     manual_ips = read_manual_ips()
     combined_ips = cidr_ips + manual_ips
 
@@ -132,7 +175,7 @@ def schedule_job():
         schedule.every().day.at(f"{hour:02d}:{minute:02d}").do(update_blocklist)
         logging.info(f"Scheduled daily update at {hour:02d}:{minute:02d}")
     elif BLOCKLIST_CRON_TYPE == "weekly":
-        valid_days = ["mon","tue","wed","thu","fri","sat","sun"]
+        valid_days = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
         day = BLOCKLIST_CRON_DAY[:3]
         if day not in valid_days:
             logging.error(f"Invalid BLOCKLIST_CRON_DAY '{BLOCKLIST_CRON_DAY}', must be one of {valid_days}. Defaulting to Monday.")
@@ -146,9 +189,7 @@ def schedule_job():
 
 def main():
     logging.info("Starting blocklist scheduler...")
-
     backup_first_start()
-
     update_blocklist()
     schedule_job()
     while True:

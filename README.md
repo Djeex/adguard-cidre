@@ -37,7 +37,7 @@
 | Variable                 | Description                                                              | Example                     | Possible Values                             |
 |--------------------------|--------------------------------------------------------------------------|-----------------------------|---------------------------------------------|
 | `TZ`                      | Timezone of the container to correctly schedule updates                | `Europe/Paris`              | Any valid timezone (e.g., `UTC`, `America/New_York`, etc.) |
-| `BLOCK_COUNTRIES`         | List of country codes for CIDR lists, separated by commas                | `cn,ru,ir`                  | ISO 2-letter country codes                  |
+| `BLOCK_COUNTRIES`         | List of country codes for CIDR lists, separated by commas. You can also define an exclude list (all countries except the specified ones) by prefixing each country code with !. Mixing inclusion and exclusion codes is not supported.                | including list : `cn,ru,ir`, excluding list : `!cn,!ru,!ir`                  | ISO 2-letter country codes                  |
 | `BLOCKLIST_CRON_TYPE`     | Scheduling type: `daily` or `weekly`                                    | `daily`                     | `daily`, `weekly`                           |
 | `BLOCKLIST_CRON_TIME`     | Time to run update in `HH:MM` 24-hour format                            | `06:00`                     | 24-hour time format                         |
 | `BLOCKLIST_CRON_DAY`      | Day of the week for weekly schedule (e.g., `mon`, `tue`, etc.)          | `mon`                       | `mon`, `tue`, `wed`, `thu`, `fri`, `sat`, `sun` |
