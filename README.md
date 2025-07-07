@@ -1,9 +1,4 @@
 <h1 align="center"> Adguard CIDRE Sync</h1>
-<div align="center">
-    <a href="https://discord.gg/gxffg3GA96">
-        <img src="https://img.shields.io/badge/JV%20hardware-rejoindre-green?style=flat-square&logo=discord&logoColor=%23fff" alt="JV Hardware">
-    </a>
-</div>
 
 **Adguard CIDRE Sync** - A bot to synchronize adguard clients disallow list with countries CIDR list of your choices.
 
