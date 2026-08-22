@@ -16,6 +16,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Build Docker image
         run: |
@@ -81,13 +82,101 @@ jobs:
             exit 0
           fi
 
-          IMAGE=git.djeex.fr/djeex/adguard-cidre
+          if echo "$CHANGED" | grep -qE '^VERSION$'; then
+            echo "VERSION was manually edited in this push, using it as-is."
+          else
+            echo "VERSION untouched but container files changed, auto-bumping the build number (Z)."
+            OLD_VERSION=$(tr -d '[:space:]' < VERSION)
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$OLD_VERSION"
+            NEW_VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))"
+            echo "$NEW_VERSION" > VERSION
+
+            git config user.name "adguard-cidre-ci"
+            git config user.email "ci@git.djeex.fr"
+            git add VERSION
+            git commit -m "Bump build version to $NEW_VERSION [skip ci]"
+
+            # Belt and suspenders: actions/checkout can leave its own ephemeral
+            # credential injected as an extraheader, which would silently override
+            # the URL-embedded token below. persist-credentials:false on checkout
+            # should already prevent this, but strip it here too just in case.
+            git config --unset-all http.https://git.djeex.fr/.extraheader || true
+
+            git push "https://Djeex:${{ secrets.CI_PUSH_TOKEN }}@git.djeex.fr/Djeex/adguard-cidre.git" HEAD:main
+          fi
+
           VERSION=$(tr -d '[:space:]' < VERSION)
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          MINOR_TAG="${MAJOR}.${MINOR}"
+
+          IMAGE=git.djeex.fr/djeex/adguard-cidre
           echo "${{ secrets.REGISTRY_TOKEN }}" | docker login git.djeex.fr -u Djeex --password-stdin
 
           # Retag the already-built, already-scanned image — never rebuild for publish,
           # so what ships is byte-for-byte what Trivy just scanned.
           docker tag adguard-cidre:ci "$IMAGE:latest"
+          docker tag adguard-cidre:ci "$IMAGE:$MINOR_TAG"
           docker tag adguard-cidre:ci "$IMAGE:$VERSION"
           docker push "$IMAGE:latest"
+          docker push "$IMAGE:$MINOR_TAG"
           docker push "$IMAGE:$VERSION"
+
+          TRIGGER_MSG=$(git log -1 --format=%s "${{ github.sha }}")
+          PR_NUM=$(echo "$TRIGGER_MSG" | grep -oE '#[0-9]+' | head -1 | tr -d '#' || true)
+
+          CATEGORY="🔧 Maintenance"
+          CHANGE_TITLE="$TRIGGER_MSG"
+
+          if [ -n "$PR_NUM" ]; then
+            PR_JSON=$(curl -s -H "Authorization: token ${{ secrets.CI_PUSH_TOKEN }}" \
+              "https://git.djeex.fr/api/v1/repos/Djeex/adguard-cidre/pulls/$PR_NUM")
+            PR_TITLE=$(echo "$PR_JSON" | jq -r '.title // empty' 2>/dev/null || true)
+            LABELS=$(echo "$PR_JSON" | jq -r '.labels[]?.name' 2>/dev/null || true)
+
+            if [ -n "$PR_TITLE" ]; then
+              CHANGE_TITLE="$PR_TITLE"
+            fi
+
+            if echo "$LABELS" | grep -qx 'bug'; then
+              CATEGORY="⚠️ Hotfix"
+            elif echo "$LABELS" | grep -qx 'major'; then
+              CATEGORY="💥 Breaking change"
+            elif echo "$LABELS" | grep -qx 'minor'; then
+              CATEGORY="✨ Update"
+            fi
+          fi
+
+          CHANGED_LIST=$(echo "$CHANGED" | sed 's/^/- /')
+
+          REPO_URL="https://git.djeex.fr/Djeex/adguard-cidre"
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          SOURCE_LINE="[${SHORT_SHA}](${REPO_URL}/commit/${{ github.sha }})"
+          if [ -n "$PR_NUM" ]; then
+            SOURCE_LINE="[#${PR_NUM}](${REPO_URL}/pulls/${PR_NUM}) · ${SOURCE_LINE}"
+          fi
+
+          BODY=$(cat <<EOF
+          ## Changelog
+
+          ### ${CATEGORY}
+          ${CHANGE_TITLE}
+
+          **Source:** ${SOURCE_LINE}
+          **Image:** \`${IMAGE}:${VERSION}\`
+
+          **Changed files:**
+          ${CHANGED_LIST}
+          EOF
+          )
+
+          JSON_PAYLOAD=$(jq -n \
+            --arg tag "$VERSION" \
+            --arg name "$VERSION" \
+            --arg body "$BODY" \
+            '{tag_name: $tag, name: $name, target_commitish: "main", body: $body}')
+
+          curl -s -o /dev/null -w "Release API response: %{http_code}\n" -X POST \
+            -H "Authorization: token ${{ secrets.CI_PUSH_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "$JSON_PAYLOAD" \
+            "https://git.djeex.fr/api/v1/repos/Djeex/adguard-cidre/releases"
