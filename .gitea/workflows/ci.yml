@@ -3,6 +3,8 @@ name: CI
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   schedule:
     - cron: "0 6 * * 1"
 
@@ -14,11 +16,43 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build Docker image
-        run: docker build -t adguard-cidre:ci .
+        run: |
+          docker build -t adguard-cidre:ci . 2>&1 | tee build.log
+          if grep -q "Building wheel for" build.log; then
+            echo "::warning::A dependency was built from source — check Python/Alpine compatibility"
+          fi
 
-      - name: Scan with Trivy
+      - name: Smoke test (syntax check)
+        run: |
+          docker run --rm --entrypoint python adguard-cidre:ci -c "
+          import ast
+          with open('blocklist_scheduler.py') as f:
+              source = f.read()
+          try:
+              ast.parse(source)
+              print('OK: syntax is valid')
+          except SyntaxError as e:
+              print(f'::error::Syntax error: {e}')
+              exit(1)
+          "
+
+      - name: Check deprecation warnings
+        run: |
+          docker run --rm adguard-cidre:ci python -W error::DeprecationWarning -c "import blocklist_scheduler" 2>&1 | tee deprecation.log || true
+          if grep -qi "deprecat" deprecation.log; then
+            echo "::warning::Deprecation warning detected, check logs"
+          fi
+
+      - name: Scan with Trivy (critical - blocking)
         run: |
           docker run --rm \
             -e DOCKER_HOST=tcp://dockerhost:2375 \
             --add-host=dockerhost:host-gateway \
-            aquasec/trivy:0.74.0 image --exit-code 0 --severity HIGH,CRITICAL adguard-cidre:ci
+            aquasec/trivy:0.74.0 image --exit-code 1 --severity CRITICAL adguard-cidre:ci
+
+      - name: Scan with Trivy (high - informative)
+        run: |
+          docker run --rm \
+            -e DOCKER_HOST=tcp://dockerhost:2375 \
+            --add-host=dockerhost:host-gateway \
+            aquasec/trivy:0.74.0 image --exit-code 0 --severity HIGH adguard-cidre:ci
