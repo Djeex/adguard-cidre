@@ -1,4 +1,4 @@
-FROM python:3.13-alpine
+FROM python:3.13-alpine AS base
 
 ENV TZ=Europe/Paris
 
@@ -11,4 +11,11 @@ WORKDIR /app
 
 COPY blocklist_scheduler.py .
 
+FROM base AS test
+COPY requirements-dev.txt .
+RUN pip install --no-cache-dir -r requirements-dev.txt
+COPY tests/ tests/
+COPY pytest.ini .
+
+FROM base
 ENTRYPOINT ["python3", "blocklist_scheduler.py"]

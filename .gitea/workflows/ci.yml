@@ -38,10 +38,8 @@ jobs:
 
       - name: Run unit tests
         run: |
-          docker run --rm -v "$PWD":/app -w /app python:3.13-alpine sh -c "
-            pip install --no-cache-dir -r requirements-dev.txt &&
-            pytest -v
-          "
+          docker build --target test -t adguard-cidre:test .
+          docker run --rm adguard-cidre:test pytest -v
 
       - name: Check deprecation warnings
         run: |
