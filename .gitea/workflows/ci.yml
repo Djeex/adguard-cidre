@@ -36,6 +36,13 @@ jobs:
               exit(1)
           "
 
+      - name: Run unit tests
+        run: |
+          docker run --rm -v "$PWD":/app -w /app python:3.13-alpine sh -c "
+            pip install --no-cache-dir -r requirements-dev.txt &&
+            pytest -v
+          "
+
       - name: Check deprecation warnings
         run: |
           docker run --rm adguard-cidre:ci python -W error::DeprecationWarning -c "import blocklist_scheduler" 2>&1 | tee deprecation.log || true

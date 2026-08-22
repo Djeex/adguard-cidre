@@ -1,2 +1,4 @@
 /adguard/*.log
 /tmp/
+__pycache__/
+.pytest_cache/
