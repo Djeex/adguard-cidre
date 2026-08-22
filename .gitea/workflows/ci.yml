@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 6 * * 1"
+
+jobs:
+  build-and-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t adguard-cidre:ci .
+
+      - name: Scan with Trivy
+        run: |
+          docker run --rm \
+            -e DOCKER_HOST=tcp://dockerhost:2375 \
+            --add-host=dockerhost:host-gateway \
+            aquasec/trivy:0.74.0 image --exit-code 0 --severity HIGH,CRITICAL adguard-cidre:ci
