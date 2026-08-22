@@ -2,6 +2,7 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended"],
   "timezone": "Europe/Paris",
+  "labels": ["bot"],
   "packageRules": [
     {
       "matchManagers": ["pip_requirements"],
@@ -12,9 +13,18 @@
       "matchManagers": ["dockerfile"],
       "matchUpdateTypes": ["patch"],
       "automerge": true
+    },
+    {
+      "matchUpdateTypes": ["major"],
+      "addLabels": ["major"]
+    },
+    {
+      "matchUpdateTypes": ["minor"],
+      "addLabels": ["minor"]
     }
   ],
   "vulnerabilityAlerts": {
-    "enabled": true
+    "enabled": true,
+    "addLabels": ["bug"]
   }
 }
