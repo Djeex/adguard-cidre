@@ -82,17 +82,12 @@ jobs:
           fi
 
           IMAGE=git.djeex.fr/djeex/adguard-cidre
+          VERSION=$(tr -d '[:space:]' < VERSION)
           echo "${{ secrets.REGISTRY_TOKEN }}" | docker login git.djeex.fr -u Djeex --password-stdin
 
           # Retag the already-built, already-scanned image — never rebuild for publish,
           # so what ships is byte-for-byte what Trivy just scanned.
           docker tag adguard-cidre:ci "$IMAGE:latest"
+          docker tag adguard-cidre:ci "$IMAGE:$VERSION"
           docker push "$IMAGE:latest"
-
-          if echo "$CHANGED" | grep -qE '^VERSION$'; then
-            VERSION=$(tr -d '[:space:]' < VERSION)
-            docker tag adguard-cidre:ci "$IMAGE:$VERSION"
-            docker push "$IMAGE:$VERSION"
-          else
-            echo "VERSION unchanged, skipping versioned tag to avoid overwriting an existing release."
-          fi
+          docker push "$IMAGE:$VERSION"
