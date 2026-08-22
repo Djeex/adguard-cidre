@@ -175,13 +175,16 @@ def schedule_job():
         schedule.every().day.at(f"{hour:02d}:{minute:02d}").do(update_blocklist)
         logging.info(f"Scheduled daily update at {hour:02d}:{minute:02d}")
     elif BLOCKLIST_CRON_TYPE == "weekly":
-        valid_days = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+        day_names = {
+            "mon": "monday", "tue": "tuesday", "wed": "wednesday", "thu": "thursday",
+            "fri": "friday", "sat": "saturday", "sun": "sunday",
+        }
         day = BLOCKLIST_CRON_DAY[:3]
-        if day not in valid_days:
-            logging.error(f"Invalid BLOCKLIST_CRON_DAY '{BLOCKLIST_CRON_DAY}', must be one of {valid_days}. Defaulting to Monday.")
+        if day not in day_names:
+            logging.error(f"Invalid BLOCKLIST_CRON_DAY '{BLOCKLIST_CRON_DAY}', must be one of {list(day_names)}. Defaulting to Monday.")
             day = "mon"
-        getattr(schedule.every(), day).at(f"{hour:02d}:{minute:02d}").do(update_blocklist)
-        logging.info(f"Scheduled weekly update on {day.capitalize()} at {hour:02d}:{minute:02d}")
+        getattr(schedule.every(), day_names[day]).at(f"{hour:02d}:{minute:02d}").do(update_blocklist)
+        logging.info(f"Scheduled weekly update on {day_names[day].capitalize()} at {hour:02d}:{minute:02d}")
     else:
         logging.error(f"Invalid BLOCKLIST_CRON_TYPE '{BLOCKLIST_CRON_TYPE}', must be 'daily' or 'weekly'. Defaulting to daily.")
         schedule.every().day.at(f"{hour:02d}:{minute:02d}").do(update_blocklist)
