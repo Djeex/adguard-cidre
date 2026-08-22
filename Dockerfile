@@ -4,16 +4,17 @@ ENV TZ=Europe/Paris
 
 RUN apk add --no-cache tzdata curl \
     && cp /usr/share/zoneinfo/$TZ /etc/localtime \
-    && echo $TZ > /etc/timezone \
-    && pip install --no-cache-dir requests pyyaml schedule
+    && echo $TZ > /etc/timezone
 
 WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY blocklist_scheduler.py .
 
 FROM base AS test
-COPY requirements-dev.txt .
-RUN pip install --no-cache-dir -r requirements-dev.txt
+RUN pip install --no-cache-dir pytest==9.1.1
 COPY tests/ tests/
 COPY pytest.ini .
 
