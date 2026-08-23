@@ -5,14 +5,16 @@ services:
     container_name: adguard-cidre
     restart: unless-stopped
     environment:
-      - TZ=Europe/Paris # change to your timezone
-      - BLOCK_COUNTRIES=cn,ru # choose countries listed IP to block. Full lists here https://github.com/vulnebify/cidre/tree/main/output/cidr/ipv4
-      - BLOCKLIST_CRON_TYPE=daily # daily or weekly
+      - PUID=${PUID} # user id the process runs as, matches ownership of the /adguard mount
+      - PGID=${PGID} # group id the process runs as
+      - TZ=${TZ} # change to your timezone
+      - BLOCK_COUNTRIES=${BLOCK_COUNTRIES} # choose countries listed IP to block. Full lists here https://github.com/vulnebify/cidre/tree/main/output/cidr/ipv4
+      - BLOCKLIST_CRON_TYPE=${BLOCKLIST_CRON_TYPE} # daily or weekly
       # if weekly, choose the day
-      # - BLOCKLIST_CRON_DAY=mon
-      - BLOCKLIST_CRON_TIME=06:00
-      - DOCKER_API_URL=http://socket-proxy-adguard:2375 # docker socket proxy
-      - ADGUARD_CONTAINER_NAME=adguardhome # adguard container name
+      - BLOCKLIST_CRON_DAY=${BLOCKLIST_CRON_DAY}
+      - BLOCKLIST_CRON_TIME=${BLOCKLIST_CRON_TIME}
+      - DOCKER_API_URL=${DOCKER_API_URL} # docker socket proxy
+      - ADGUARD_CONTAINER_NAME=${ADGUARD_CONTAINER_NAME} # adguard container name
     volumes:
       - /path/to/adguard/confdir:/adguard
 

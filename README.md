@@ -31,6 +31,8 @@
 
 | Variable                 | Description                                                              | Example                     | Possible Values                             |
 |--------------------------|--------------------------------------------------------------------------|-----------------------------|---------------------------------------------|
+| `PUID`                    | User ID the process runs as (drops root at startup)                     | `1000`                      | Any valid numeric UID                       |
+| `PGID`                    | Group ID the process runs as                                            | `1000`                      | Any valid numeric GID                       |
 | `TZ`                      | Timezone of the container to correctly schedule updates                | `Europe/Paris`              | Any valid timezone (e.g., `UTC`, `America/New_York`, etc.) |
 | `BLOCK_COUNTRIES`         | List of country codes for CIDR lists, separated by commas. You can also define an exclude list (all countries except the specified ones) by prefixing each country code with !. Mixing inclusion and exclusion codes is not supported.                | including list : `cn,ru,ir`, excluding list : `!cn,!ru,!ir`                  | ISO 2-letter country codes                  |
 | `BLOCKLIST_CRON_TYPE`     | Scheduling type: `daily` or `weekly`                                    | `daily`                     | `daily`, `weekly`                           |
@@ -64,6 +66,8 @@
         container_name: adguard-cidre
         restart: unless-stopped
         environment:
+        - PUID=1000 # user id the process runs as, matches ownership of the /adguard mount
+        - PGID=1000 # group id the process runs as
         - TZ=Europe/Paris # change to your timezone
         - BLOCK_COUNTRIES=cn,ru # choose countries listed IP to block. Full lists here https://github.com/vulnebify/cidre/tree/main/output/cidr/ipv4
         - BLOCKLIST_CRON_TYPE=daily # daily or weekly
@@ -121,11 +125,12 @@
     git clone https://git.djeex.fr/Djeex/adguard-cidre
     cd adguard-cidre
     ```
-2. **Modify docker-compose.yml**
+2. **Edit the `.env` file**
 
-- Set `BLOCK_COUNTRIES` environment variable with the countries you want to block.
-- Adjust `BLOCKLIST_CRON` variables if you want a different update frequency.
-- Bind mount your adguard configuration folder (wich contains `AdGuardHome.yaml`) to `/adguard`
+- A `.env` file is included at the repo root with all environment variables (see [Environment Variables](#environment-variables)). Edit values there instead of `docker-compose.yml`.
+- Set `BLOCK_COUNTRIES` with the countries you want to block.
+- Adjust `BLOCKLIST_CRON_*` variables if you want a different update frequency.
+- Bind mount your adguard configuration folder (wich contains `AdGuardHome.yaml`) to `/adguard` in `docker-compose.yml`.
 - (optionnally) create and edit `manually_blocked_ips.conf` file in your adguard configuration folder to add other IPs you want to block. Only valid IP or CIDR entries will be processed, for exemple :
 
     ```bash
