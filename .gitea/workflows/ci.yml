@@ -70,10 +70,11 @@ jobs:
         run: |
           BEFORE="${{ github.event.before }}"
           if [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] && git cat-file -e "$BEFORE" 2>/dev/null; then
-            CHANGED=$(git diff --name-only "$BEFORE" "${{ github.sha }}")
+            BASE_REF="$BEFORE"
           else
-            CHANGED=$(git diff --name-only HEAD~1 HEAD)
+            BASE_REF="HEAD~1"
           fi
+          CHANGED=$(git diff --name-only "$BASE_REF" "${{ github.sha }}")
           echo "Changed files:"
           echo "$CHANGED"
 
@@ -146,7 +147,7 @@ jobs:
             fi
           fi
 
-          CHANGED_LIST=$(echo "$CHANGED" | sed 's/^/- /')
+          COMMIT_LIST=$(git log --no-merges --format='- %s' "$BASE_REF".."${{ github.sha }}")
 
           REPO_URL="https://git.djeex.fr/Djeex/adguard-cidre"
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
@@ -157,15 +158,17 @@ jobs:
 
           BODY=$(cat <<EOF
           ## Changelog
+          ---
 
           ### ${CATEGORY}
+          ---
           ${CHANGE_TITLE}
 
           **Source:** ${SOURCE_LINE}
           **Image:** \`${IMAGE}:${VERSION}\`
 
-          **Changed files:**
-          ${CHANGED_LIST}
+          **Commits:**
+          ${COMMIT_LIST}
           EOF
           )
 
