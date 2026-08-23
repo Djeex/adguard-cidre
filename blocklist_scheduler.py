@@ -11,7 +11,7 @@ from pathlib import Path
 
 logging.basicConfig(
     level=logging.INFO,
-    format='[blocklist] %(levelname)s: %(message)s',
+    format="%(asctime)s [%(levelname)s] %(message)s",
     stream=sys.stdout,
 )
 

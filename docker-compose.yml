@@ -5,6 +5,8 @@ services:
     container_name: adguard-cidre
     restart: unless-stopped
     environment:
+      - PUID=1000 # user id the process runs as, matches ownership of the /adguard mount
+      - PGID=1000 # group id the process runs as
       - TZ=Europe/Paris # change to your timezone
       - BLOCK_COUNTRIES=cn,ru # choose countries listed IP to block. Full lists here https://github.com/vulnebify/cidre/tree/main/output/cidr/ipv4
       - BLOCKLIST_CRON_TYPE=daily # daily or weekly
