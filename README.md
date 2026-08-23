@@ -125,11 +125,12 @@
     git clone https://git.djeex.fr/Djeex/adguard-cidre
     cd adguard-cidre
     ```
-2. **Modify docker-compose.yml**
+2. **Edit the `.env` file**
 
-- Set `BLOCK_COUNTRIES` environment variable with the countries you want to block.
-- Adjust `BLOCKLIST_CRON` variables if you want a different update frequency.
-- Bind mount your adguard configuration folder (wich contains `AdGuardHome.yaml`) to `/adguard`
+- A `.env` file is included at the repo root with all environment variables (see [Environment Variables](#environment-variables)). Edit values there instead of `docker-compose.yml`.
+- Set `BLOCK_COUNTRIES` with the countries you want to block.
+- Adjust `BLOCKLIST_CRON_*` variables if you want a different update frequency.
+- Bind mount your adguard configuration folder (wich contains `AdGuardHome.yaml`) to `/adguard` in `docker-compose.yml`.
 - (optionnally) create and edit `manually_blocked_ips.conf` file in your adguard configuration folder to add other IPs you want to block. Only valid IP or CIDR entries will be processed, for exemple :
 
     ```bash
