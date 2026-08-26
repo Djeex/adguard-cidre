@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-import os
-import sys
 import logging
-import requests
-import yaml
-import schedule
-import time
+import os
 import re
+import sys
+import time
 from pathlib import Path
+
+import requests
+import schedule
+import yaml
 
 logging.basicConfig(
     level=logging.INFO,
@@ -19,7 +20,9 @@ ADGUARD_YAML = Path("/adguard/AdGuardHome.yaml")
 TMP_YAML = ADGUARD_YAML.parent / (ADGUARD_YAML.name + ".tmp")
 MANUAL_IPS_FILE = Path("/adguard/manually_blocked_ips.conf")
 CIDR_BASE_URL = "https://raw.githubusercontent.com/vulnebify/cidre/main/output/cidr/ipv4"
-COUNTRY_LIST_URL = "https://raw.githubusercontent.com/vulnebify/cidre/refs/heads/main/cidre/countries.py"
+COUNTRY_LIST_URL = (
+    "https://raw.githubusercontent.com/vulnebify/cidre/refs/heads/main/cidre/countries.py"
+)
 
 FIRST_BACKUP = ADGUARD_YAML.parent / "AdGuardHome.yaml.first-start.bak"
 LAST_UPDATE_BACKUP = ADGUARD_YAML.parent / "AdGuardHome.yaml.last-update.bak"
@@ -32,6 +35,7 @@ BLOCKLIST_CRON_DAY = os.getenv("BLOCKLIST_CRON_DAY", "mon").lower()
 ADGUARD_CONTAINER_NAME = os.getenv("ADGUARD_CONTAINER_NAME", "adguardhome")
 DOCKER_API_URL = os.getenv("DOCKER_API_URL", "http://socket-proxy-adguard:2375")
 
+
 def backup_first_start():
     if not FIRST_BACKUP.exists():
         logging.info(f"Creating first start backup: {FIRST_BACKUP}")
@@ -39,9 +43,11 @@ def backup_first_start():
     else:
         logging.info("First start backup already exists, skipping.")
 
+
 def backup_last_update():
     logging.info(f"Creating last update backup: {LAST_UPDATE_BACKUP}")
     LAST_UPDATE_BACKUP.write_text(ADGUARD_YAML.read_text())
+
 
 def fetch_all_country_codes():
     try:
@@ -52,6 +58,7 @@ def fetch_all_country_codes():
     except Exception as e:
         logging.error(f"Failed to fetch available country codes: {e}")
         return set()
+
 
 def get_selected_countries():
     if not BLOCK_COUNTRIES:
@@ -67,7 +74,9 @@ def get_selected_countries():
     is_inclusion = all(not c.startswith("!") for c in raw_codes)
 
     if not (is_exclusion or is_inclusion):
-        logging.error("Mixed syntax in BLOCK_COUNTRIES. Use only inclusion (e.g. 'fr,de') or only exclusion (e.g. '!fr,!de').")
+        logging.error(
+            "Mixed syntax in BLOCK_COUNTRIES. Use only inclusion (e.g. 'fr,de') or only exclusion (e.g. '!fr,!de')."
+        )
         sys.exit(1)
 
     available = fetch_all_country_codes()
@@ -80,6 +89,7 @@ def get_selected_countries():
         return sorted(available - selected)
     else:
         return sorted(selected & available)
+
 
 def download_cidr_lists(countries):
     combined_ips = []
@@ -96,6 +106,7 @@ def download_cidr_lists(countries):
             logging.warning(f"Failed to download {code}: {e}")
     return combined_ips
 
+
 def read_manual_ips():
     if MANUAL_IPS_FILE.exists():
         logging.info(f"Reading manual IPs from {MANUAL_IPS_FILE}")
@@ -103,13 +114,14 @@ def read_manual_ips():
         with MANUAL_IPS_FILE.open() as f:
             for line in f:
                 line = line.strip()
-                if line and (line.count('.') == 3 or '/' in line):
+                if line and (line.count(".") == 3 or "/" in line):
                     valid_ips.append(line)
         logging.info(f"Added {len(valid_ips)} manual IP entries")
         return valid_ips
     else:
         logging.info("Manual IPs file does not exist, skipping.")
         return []
+
 
 def update_yaml_with_ips(ips):
     if not ADGUARD_YAML.exists():
@@ -127,14 +139,15 @@ def update_yaml_with_ips(ips):
         logging.error("Invalid YAML format.")
         return False
 
-    data['dns']['disallowed_clients'] = ips
+    data["dns"]["disallowed_clients"] = ips
 
-    with TMP_YAML.open('w') as f:
+    with TMP_YAML.open("w") as f:
         yaml.safe_dump(data, f)
 
     TMP_YAML.replace(ADGUARD_YAML)
     logging.info(f"Updated {ADGUARD_YAML} with new disallowed clients list.")
     return True
+
 
 def restart_adguard_container():
     restart_url = f"{DOCKER_API_URL}/containers/{ADGUARD_CONTAINER_NAME}/restart"
@@ -147,6 +160,7 @@ def restart_adguard_container():
             logging.error(f"Failed to restart container: {resp.status_code} {resp.text}")
     except Exception as e:
         logging.error(f"Error restarting container: {e}")
+
 
 def update_blocklist():
     countries = get_selected_countries()
@@ -164,11 +178,14 @@ def update_blocklist():
     if success:
         restart_adguard_container()
 
+
 def schedule_job():
     try:
         hour, minute = [int(x) for x in BLOCKLIST_CRON_TIME.split(":")]
     except Exception:
-        logging.error(f"Invalid BLOCKLIST_CRON_TIME '{BLOCKLIST_CRON_TIME}', must be HH:MM. Defaulting to 06:00.")
+        logging.error(
+            f"Invalid BLOCKLIST_CRON_TIME '{BLOCKLIST_CRON_TIME}', must be HH:MM. Defaulting to 06:00."
+        )
         hour, minute = 6, 0
 
     if BLOCKLIST_CRON_TYPE == "daily":
@@ -176,19 +193,33 @@ def schedule_job():
         logging.info(f"Scheduled daily update at {hour:02d}:{minute:02d}")
     elif BLOCKLIST_CRON_TYPE == "weekly":
         day_names = {
-            "mon": "monday", "tue": "tuesday", "wed": "wednesday", "thu": "thursday",
-            "fri": "friday", "sat": "saturday", "sun": "sunday",
+            "mon": "monday",
+            "tue": "tuesday",
+            "wed": "wednesday",
+            "thu": "thursday",
+            "fri": "friday",
+            "sat": "saturday",
+            "sun": "sunday",
         }
         day = BLOCKLIST_CRON_DAY[:3]
         if day not in day_names:
-            logging.error(f"Invalid BLOCKLIST_CRON_DAY '{BLOCKLIST_CRON_DAY}', must be one of {list(day_names)}. Defaulting to Monday.")
+            logging.error(
+                f"Invalid BLOCKLIST_CRON_DAY '{BLOCKLIST_CRON_DAY}', must be one of {list(day_names)}. Defaulting to Monday."
+            )
             day = "mon"
-        getattr(schedule.every(), day_names[day]).at(f"{hour:02d}:{minute:02d}").do(update_blocklist)
-        logging.info(f"Scheduled weekly update on {day_names[day].capitalize()} at {hour:02d}:{minute:02d}")
+        getattr(schedule.every(), day_names[day]).at(f"{hour:02d}:{minute:02d}").do(
+            update_blocklist
+        )
+        logging.info(
+            f"Scheduled weekly update on {day_names[day].capitalize()} at {hour:02d}:{minute:02d}"
+        )
     else:
-        logging.error(f"Invalid BLOCKLIST_CRON_TYPE '{BLOCKLIST_CRON_TYPE}', must be 'daily' or 'weekly'. Defaulting to daily.")
+        logging.error(
+            f"Invalid BLOCKLIST_CRON_TYPE '{BLOCKLIST_CRON_TYPE}', must be 'daily' or 'weekly'. Defaulting to daily."
+        )
         schedule.every().day.at(f"{hour:02d}:{minute:02d}").do(update_blocklist)
         logging.info(f"Scheduled daily update at {hour:02d}:{minute:02d}")
+
 
 def main():
     logging.info("Starting blocklist scheduler...")
@@ -198,6 +229,7 @@ def main():
     while True:
         schedule.run_pending()
         time.sleep(10)
+
 
 if __name__ == "__main__":
     main()

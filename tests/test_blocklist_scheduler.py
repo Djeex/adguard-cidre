@@ -56,6 +56,7 @@ def test_backup_first_start_raises_if_adguard_yaml_missing(tmp_path, monkeypatch
 
 # --- update_yaml_with_ips (pyyaml) ---
 
+
 def test_update_yaml_with_ips_writes_disallowed_clients(tmp_path, monkeypatch):
     adguard_yaml = tmp_path / "AdGuardHome.yaml"
     adguard_yaml.write_text("dns:\n  bind_hosts:\n  - 0.0.0.0\n")
@@ -101,8 +102,11 @@ def test_update_yaml_with_ips_missing_dns_key_raises(tmp_path, monkeypatch):
 
 # --- fetch_all_country_codes / download_cidr_lists / restart_adguard_container (requests) ---
 
+
 def test_fetch_all_country_codes_parses_codes(monkeypatch):
-    monkeypatch.setattr(bs.requests, "get", lambda *a, **k: FakeResponse(text='COUNTRIES = ["FR", "DE", "US"]\n'))
+    monkeypatch.setattr(
+        bs.requests, "get", lambda *a, **k: FakeResponse(text='COUNTRIES = ["FR", "DE", "US"]\n')
+    )
 
     assert bs.fetch_all_country_codes() == {"fr", "de", "us"}
 
@@ -136,7 +140,9 @@ def test_restart_adguard_container_success_does_not_raise(monkeypatch):
 
 
 def test_restart_adguard_container_error_status_does_not_raise(monkeypatch):
-    monkeypatch.setattr(bs.requests, "post", lambda *a, **k: FakeResponse(status_code=500, text="err"))
+    monkeypatch.setattr(
+        bs.requests, "post", lambda *a, **k: FakeResponse(status_code=500, text="err")
+    )
 
     bs.restart_adguard_container()
 
@@ -151,6 +157,7 @@ def test_restart_adguard_container_network_error_does_not_raise(monkeypatch):
 
 
 # --- schedule_job (schedule) ---
+
 
 @pytest.fixture(autouse=True)
 def clear_schedule():

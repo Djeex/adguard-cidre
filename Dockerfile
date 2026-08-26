@@ -15,9 +15,15 @@ COPY blocklist_scheduler.py entrypoint.sh VERSION ./
 RUN chmod +x entrypoint.sh
 
 FROM base AS test
-RUN pip install --no-cache-dir pytest==9.1.1
+RUN pip install --no-cache-dir pytest==9.1.1 pytest-cov==7.1.0
 COPY tests/ tests/
 COPY pytest.ini .
+
+FROM base AS lint
+RUN pip install --no-cache-dir ruff==0.16.4
+COPY ruff.toml .
+COPY tests/ tests/
+RUN ruff check . && ruff format --check .
 
 FROM base
 ENTRYPOINT ["./entrypoint.sh"]

@@ -1,0 +1,10 @@
+line-length = 100
+
+[lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]
+
+[lint.isort]
+# See nvidia-stock-bot's ruff.toml for why this is pinned explicitly rather
+# than left to auto-detection.
+known-first-party = ["blocklist_scheduler"]
